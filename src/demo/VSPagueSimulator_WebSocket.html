@@ -1,793 +1,128 @@
 <html>
-	<title>VBI Informática</title>
-	<h3><label>Serviços para execução da transação</label></h3>
-	<label>Sequencial</label>
-	<input type="text" id="io_txt_sequencial" size="10">
-	<button style="width: 90px; height: 26px;" onclick="SequencialAdicionar()">Sequencial++</button>
-	<br>
-	<label>Valor</label>
-	<input type="text" id="io_txt_coleta_valor" size="10">
-	<br>
-	<label>Tipo do Cartão</label>
-	<select id="io_lst_tipo_cartao">
-		<option></option>
-		<option>Credito</option>
-		<option>Debito</option>
-	</select>
-	<br>
-	<label>Tipo da Transação</label>
-	<select id="io_lst_transacao_tipo">
-	<option></option>
-	</select>
-	<br>
-	<label>Produto</label>
-	<select id="io_lst_tipo_produto">
-	<option></option>
-	</select>
-	<br>
-	<label>Pagamento</label>
-	<select id="io_lst_transacao_pagamento">
-		<option></option>
-		<option>A vista</option>
-		<option>Parcelado Estabelecimento</option>
-		<option>Parcelado Administradora</option>
-	</select>
-	<br>
-	<br>
-	<button style="width: 90px; height: 26px;" onclick="Conectar()">Conectar</button>
-	<button style="width: 90px; height: 26px;" onclick="Consultar()">Consultar</button>
-	<button style="width: 90px; height: 26px;" onclick="Iniciar()">Iniciar</button>
-	<button style="width: 90px; height: 26px;" onclick="Executar()">Executar</button>
-	<button style="width: 90px; height: 26px;" onclick="Confirmar()">Confimar</button>
-	<button style="width: 90px; height: 26px;" onclick="Finalizar()">Finalizar</button>
-	<button style="width: 90px; height: 26px;" onclick="FluxoAbortar()">Abortar</button>
-	<button style="width: 90px; height: 26px;" onclick="Limpar()">Limpar</button>
-	<br>
-	<br>
-	<label>Informação</label>
-	<input type="text" id="io_txt_coleta_informacao" onkeypress="Coleta(event)" size="40">
-	<button style="width: 90px; height: 24px;" onclick="Coleta('')">Enviar</button>
-	<button style="width: 120px; height: 26px;" onclick="CartaoDigitar()">Digitar Cartão</button>
-	<br>
-	<h3><label>Serviços que utilizam o PIN-Pad</label></h3>
-	<select id="io_lst_tipo_servico_mostrar">
-		<option></option>
-		<option>CMCE</option>
-		<option>LIBA</option>
-		<option>OPCS</option>
-		<option>PDTA</option>
-		<option>PDTC</option>
-		<option>PDTL</option>
-		<option>PDTN</option>
-		<option>PDTR</option>
-		<option>PDTS</option>
-		<option>SELC</option>
-		<option>SIGE</option>
-		<option>TRAA</option>
-		<option>TRAC</option>
-		<option>WAIT</option>
-	</select>
-	
-	<button style="width: 90px; height: 26px;" onclick="Mostrar('')">Mostrar</button>
-	<br>
-	<select id="io_lst_tipo_servico_coletar">
-		<option></option>
-		<option>CNPJE</option>
-		<option>CPFE</option>
-		<option>FONEE</option>
-		<option>RGE</option>
-	</select>
-
-	<button style="width: 90px; height: 26px;" onclick="Coletar()">Coletar</button>
-	<br>
-	<select id="io_lst_tipo_servico_perguntar">
-		<option></option>
-		<option>CNPJC</option>
-		<option>CPFC</option>
-		<option>FONEC</option>
-		<option>OPERC</option>
-		<option>RGC</option>
-		<option>SELC</option>
-	</select>
-
-	<button style="width: 90px; height: 26px;" onclick="Perguntar()">Perguntar</button>
-	
-	<script type="text/javascript">
-	
-		var
-		ln_font_size		=	4;
-		
-		var
-		in_sequencial		=	2;
-		
-		var
-		in_sequencial_executar	=	0;
-		
-		var
-		io_connection		=	Conectar();
-		
-		var
-		io_tags;
-		
-		//
-		// Abre a conexão e envia o primeiro servico.
-		//
-		io_connection.onopen	=	function()
-		{
-			//
-			// Informa que conectou com sucesso.
-			//
-			Trace('Connection successful');
-			
-			//
-			// Instancia as tag's para integração.
-			//
-			io_tags			=		new Tags();
-			
-			//
-			// Inicializa as tag's.
-			//
-			io_tags.TagsInicializar();
-		}
-		
-		/**
-		Função para tratamento dos erros na comunicação.
-		*/
-		io_connection.onerror	=	function(error)
-		{
-			//
-			// Informa que conectou com sucesso.
-			//
-			Trace('Disconnected');
-			
-			Trace(error.data);
-			//io_connection.close();
-		}
-	
-		/**
-		Função para troca de mensagem.
-		*/
-		io_connection.onmessage	=	function(e)
-		{
-			//
-			// Apresenta a mensagem.
-			//
-			Trace(e.data);
-	
-			//
-			// Inicia as tag's.
-			//
-			io_tags.TagsInicializar();
-	
-			//
-			// Mosta as tag's recebidas.
-			//
-			new ServicoDesmontar(e.data);
-	
-			//
-			// Se retorno não for de pacote ok...
-			//
-			if	(
-					io_tags.retorno		!==	'0'
-				)
-			{
-				in_sequencial		=		io_tags.sequencial;
-				
-				document.getElementById('io_txt_sequencial').value
-							=	in_sequencial;
-			}
-			
-			//
-			// Guarda o sequencial corrente da coleta.
-			//
-			in_sequencial_executar	=	io_tags.automacao_coleta_sequencial;
-	
-			//
-			// Apresenta o comprovante..
-			//
-			if	(
-					io_tags.transacao_comprovante_1via
-								!==	''
-				)
-			{
-				alert(io_tags.transacao_comprovante_1via+io_tags.transacao_comprovante_2via);
-			}
-		}
-	
-		//
-		// Função para envio dos dados.
-		//
-		function		Send(as_buffer)
-		{
-			//
-			// Envia o pacote.
-			//
-			io_connection.send(as_buffer);
-			
-			/*
-			Apresenta no browser.
-			*/
-			var
-			obj			=		document.getElementById("output");
-			obj.innerHTML		=	"<br> >>> SEND: <br>"+as_buffer.fontsize(ln_font_size)+"<br><br>"+obj.innerHTML;
-		}
-		
-		//
-		// Função para visualização dos pacotes trocados.
-		//
-		function		Trace(as_buffer)
-		{
-			/*
-			Apresenta no browser.
-			*/
-			var
-			obj			=		document.getElementById("output");
-			obj.innerHTML		=	"<br> <<< RECEIVE: <br>"+as_buffer.fontsize(ln_font_size)+"<br><br>"+obj.innerHTML;
-		}
-	
-		function		Sequencial()
-		{
-			//
-			// Incrementa o sequencial..
-			//
-			in_sequencial		=		(in_sequencial+1);
-			
-			document.getElementById('io_txt_sequencial').value
-								=	in_sequencial;
-			return(in_sequencial);
-		}
-		
-		function		Coleta(ao_event)
-		{
-			if	(
-					(ao_event		==	'')
-					||
-					(ao_event.keyCode	===	13)
-				)
-			{
-				Send('automacao_coleta_sequencial="'+in_sequencial_executar+'"automacao_coleta_retorno="0"automacao_coleta_informacao="'+document.getElementById('io_txt_coleta_informacao').value+'"');
-				
-				document.getElementById('io_txt_coleta_informacao').value
-								=	'';
-			}	
-		}
-		
-		function		Iniciar()
-		{
-			Send('servico="iniciar"sequencial="'+Sequencial()+'"retorno="1"versao="1.0.0"aplicacao_tela="VBIAutomationTest"aplicacao="V$PagueClient"');
-		}
-	
-		function		Finalizar()
-		{
-			Send('servico="finalizar"sequencial="'+Sequencial()+'"retorno="1"');
-		}
-		
-		/**
-		Função responsável por montar e enviar o serviço "executar".
-		*/
-		function		Executar()
-		{
-			var
-			ls_tags_executar	=	'servico="executar"retorno="1"sequencial="'+Sequencial()+'"';
-		
-			var
-			ls_tipo_cartao		=	document.getElementById('io_lst_tipo_cartao').options[io_lst_tipo_cartao.selectedIndex].text;
-			
-			var
-			ls_tipo_transacao	=	document.getElementById('io_lst_transacao_tipo').options[io_lst_transacao_tipo.selectedIndex].text;
-			
-			var
-			ls_tipo_produto		=	document.getElementById('io_lst_tipo_produto').options[io_lst_tipo_produto.selectedIndex].text;
-	 
-			var
-			ls_transacao_pagamento	=	document.getElementById('io_lst_transacao_pagamento').options[io_lst_transacao_pagamento.selectedIndex].text;
-			
-			var
-			ls_transacao_valor	=	document.getElementById('io_txt_coleta_valor').value;
-			
-			if (ls_transacao_valor	!==	"")
-			{
-				ls_transacao_valor		=	'transacao_valor="'+ls_transacao_valor+'"';
-				ls_tags_executar		=	 ls_tags_executar+ls_transacao_valor;
-			}
-			
-			
-			if	(
-					io_lst_transacao_tipo.selectedIndex
-								>=	0
-				)
-			{
-				ls_tipo_transacao		=		'transacao="'+ls_tipo_transacao+'"';
-				ls_tags_executar		=		ls_tags_executar+ls_tipo_transacao;
-			}
-			
-			if	(
-					io_lst_tipo_cartao.selectedIndex
-								>=	0
-				)
-			{
-				ls_tipo_cartao		=	'transacao_tipo_cartao="'+ls_tipo_cartao+'"';
-				ls_tags_executar	=	ls_tags_executar+ls_tipo_cartao;
-					
-			}
-			
-			if	(
-					io_lst_transacao_pagamento.selectedIndex
-								>=	0
-				)
-			{
-				ls_transacao_pagamento		=	'transacao_pagamento="'+ls_transacao_pagamento+'"';
-				ls_tags_executar			=	ls_tags_executar+ls_transacao_pagamento;
-			}
-			
-			if	(
-					io_lst_tipo_produto.selectedIndex
-								>=	0
-				)
-			{
-				ls_tipo_produto		=	'transacao_produto="'+ls_tipo_produto+'"';
-				ls_tags_executar			=	ls_tags_executar+ls_tipo_produto;
-			}
-			
-			//
-			// Envia o pacote para o V$PagueClient.
-			//
-			Send(ls_tags_executar);
-		}
-		
-		function		Conectar()
-		{
-			//
-			// Retorna a conexão estabelecida.
-			//
-			return	(new WebSocket('ws://localhost:60906'));
-		}
-		
-		function		Limpar()
-		{
-			document.getElementById('output').innerHTML
-							=		'';
-			/**
-			io_lst_transacao_tipo.selectedIndex
-							=		0;
-			io_lst_tipo_cartao.selectedIndex
-							=		0;
-			io_lst_transacao_pagamento.selectedIndex
-							=		0;
-			*/
-							
-		}
-		
-		function		SequencialAdicionar()
-		{
-			in_sequencial			=		in_sequencial++;
-			document.getElementById('io_txt_sequencial').value
-							=	in_sequencial;
-			return(in_sequencial);
-		}
-		
-		function		Confirmar()
-		{
-			var
-			ls_tipo_transacao	=	document.getElementById('io_lst_transacao_tipo').options[io_lst_transacao_tipo.selectedIndex].text;
-			
-			var
-			ls_tags_executar	=	'servico="executar"retorno="0"sequencial="'+document.getElementById('io_txt_sequencial').value+'"';
-			
-			if	(
-						io_lst_transacao_tipo.selectedIndex
-									>=	0
-				)
-			{
-				ls_tipo_transacao		=		'transacao="'+ls_tipo_transacao+'"';
-				ls_tags_executar		=		ls_tags_executar+ls_tipo_transacao;
-			}
-	        
-			Send(ls_tags_executar);
-		}
-		
-		function			CartaoDigitar()
-		{
-			Send('automacao_coleta_retorno="9"automacao_coleta_sequencial="'+(in_sequencial_executar)+'"');
-		}
-		
-		function			FluxoAbortar()
-		{
-			Send('automacao_coleta_retorno="9"automacao_coleta_mensagem="Fluxo Abortado pelo operador!!"automacao_coleta_sequencial="'+(in_sequencial_executar)+'"');
-		}
-		
-		function			Mostrar(ao_event)
-		{
-			var
-			ls_tipo_servico	=	document.getElementById('io_lst_tipo_servico_mostrar').options[io_lst_tipo_servico_mostrar.selectedIndex].text;
-			
-			if	(
-					ls_tipo_servico		===	''
-				)
-			{
-				ls_tipo_servico		=		document.getElementById('io_txt_servico_mostrar').text;	
-			}
-			
-			if	(
-					(ao_event		===	'')
-					||
-					(ao_event.keyCode	===	13)
-				)
-			{
-				Send('servico="mostrar"retorno="1"sequencial="'+Sequencial()+'"mensagem="'+ls_tipo_servico+'"');	
-			}
-		}
-		
-		function			Coletar()
-		{
-			var
-			ls_tipo_servico	=	document.getElementById('io_lst_tipo_servico_coletar').options[io_lst_tipo_servico_coletar.selectedIndex].text;
-			
-			Send('servico="coletar"retorno="1"sequencial="'+Sequencial()+'"mensagem="'+ls_tipo_servico+'"');		
-		}
-		
-		function			Perguntar()
-		{
-			var
-			ls_tipo_servico	=	document.getElementById('io_lst_tipo_servico_perguntar').options[io_lst_tipo_servico_perguntar.selectedIndex].text;
-			
-			Send('servico="perguntar"retorno="1"sequencial="'+Sequencial()+'"mensagem="'+ls_tipo_servico+'+'+document.getElementById('io_txt_coleta_informacao').value+'"');		
-		}
-		
-		function			Consultar()
-		{
-			Send('servico="consultar"retorno="0"sequencial="'+Sequencial()+'"');
-		}
-		
-		/**
-		Tags nessessárias para a integração.
-		*/
-		function		Tags()
-		{
-			var
-			aplicacao;
-			
-			var
-			aplicacao_tela;
-			
-			var
-			estado;
-			
-			var
-			versao;
-			
-			var
-			mensagem;
-			
-			var
-			retorno;
-			
-			var
-			sequencial;
-			
-			var
-			servico;
-			
-			var
-			transacao;
-			
-			var
-			tipo_produto;
-			
-			var
-			transacao_comprovante_1via;
-			
-			var
-			transacao_comprovante_2via;
-			
-			var
-			transacao_comprovante_resumido;
-			
-			var
-			transacao_informacao;
-			
-			var
-			transacao_opcao;
-			
-			var
-			transacao_pagamento;
-			
-			var
-			transacao_parcela;
-			
-			var
-			transacao_produto;
-			
-			var
-			transacao_rede;
-			
-			var
-			transacao_tipo_cartao;
-			
-			var
-			transacao_administracao_usuario;
-			
-			var
-			transacao_administracao_senha;
-			
-			var
-			transacao_valor;
-			
-			
-			var
-			automacao_coleta_sequencial;
-			
-			var
-			automacao_coleta_retorno;
-			
-			var
-			automacao_coleta_mensagem;
-			
-			var
-			automacao_coleta_informacao;
-			
-			var
-			automacao_coleta_opcao;
-			
-			
-			this.TagsAlimentar	=	function(as_tag, as_value)
-			{
-				//Trace('Alimentando...'+as_tag);
-				
-				if	(
-						'automacao_coleta_opcao'	===	as_tag
-					)
-				{
-					automacao_coleta_opcao	=	as_value;	
-				}
-				else if	(
-							'automacao_coleta_informacao'	===	as_tag	
-						)
-				{
-					automacao_coleta_informacao	=	as_value;	
-				}
-				
-				else if	(
-							'automacao_coleta_mensagem'	===	as_tag
-						)
-				{
-					automacao_coleta_mensagem	=	as_value;	
-				}
-				
-				else if	(
-							'automacao_coleta_retorno'	===	as_tag
-						)
-				{
-					automacao_coleta_retorno	=	as_value;	
-				}
-				
-				else if	(
-							'automacao_coleta_sequencial'	===	as_tag
-						)
-				{
-					this.automacao_coleta_sequencial	=	as_value;	
-				}
-				
-				else if	(
-							'transacao_comprovante_1via'	===	as_tag
-						)
-				{
-					this.transacao_comprovante_1via	=	as_value;	
-				}
-				
-				else if	(
-							'transacao_comprovante_2via' ===	as_tag
-						)
-				{
-					this.transacao_comprovante_2via	=	as_value;	
-				}
-				
-				else if	(
-							'transacao_comprovante_resumido'	===	as_tag
-						)
-				{
-					this.transacao_comprovante_resumido	=	as_value;	
-				}
-				
-				else if	(
-							'servico'		===	as_tag
-						)
-				{
-					this.servico		=		as_value;
-				}
-				
-				else if	(
-								'transacao'			===	as_tag
-						)
-				{
-					this.transacao			=		as_value;	
-				}
-				
-				else if	(
-							'transacao_produto'			===	as_tag
-						)
-				{
-					this.transacao_produto		=	as_value;	
-				}
-				
-				else if	(
-							'retorno'			===	as_tag
-						)
-				{
-					this.retorno		=		as_value;
-				}
-				
-				else if	(
-							'sequencial'			===	as_tag
-						)
-				{
-					this.sequencial		=	parseInt(as_value,0);	
-				}
-				
-			}
-			
-			this.TagsInicializar	=	function()
-			{
-				this.transacao_comprovante_1via
-							=	'';
-				this.transacao_comprovante_2via
-							=	'';
-				this.transacao		=	'';
-				this.transacao_produto	=	'';
-				this.servico		=	'';
-				this.retorno		=	0;
-				this.sequencial		=	0;
-			}
-		}
-		
-		var
-		ServicoDesmontar	=	function(ao_servico)
-		{		
-			var
-			ln_start		=	0;
-			
-			var
-			ln_end			=	ao_servico.toString().indexOf("\n\r\n\t\t\r\n\t\t\t\r\n\t\t\r\n\t");
-			
-			var
-			ls_tag			=	"";
-			
-			var
-			ls_value		=	"";
-			
-			var
-			ln_value_end		=	0;
-						
-			try
-			{				
-				//
-				// Enquanto não finalizou a leitura do pacote recebido...
-				//
-				while	(
-						ln_start		<		ln_end
-					)
-				{
-					//
-					// Recupera a TAG..
-					//
-					ls_tag				=	ao_servico.toString().substring(ln_start, ao_servico.indexOf('="', ln_start));
-					
-					//
-					// Ignora o = e a primeira " (...="...).
-					//
-					ln_start			=		ln_start+(ls_tag.toString().length)+2;
-					
-					//
-					// Recupera o valor da tag.
-					//
-					ls_value			=	ao_servico.toString().substring
-											(
-												ln_start,
-												(ln_start = ao_servico.toString().indexOf('\"\n', ln_start))
-											);
-					//
-					//Aponta para a segunda aspa dupla + \n.
-					//
-					ln_start			+=		 2;
-					
-					//
-					// Alimenta com a tag recebida..
-					//
-					io_tags.TagsAlimentar(ls_tag, ls_value);
-				}
-				
-				if	(io_tags.servico	!==	'')
-				{
-					//
-					// Se Recebeu um Serviço Executar..
-					//
-					if	(
-							'consultar'			===	io_tags.servico
-						)
-					{
-						//
-						// Quebra no ; a lista que a automação recebeu..
-						//
-						var
-						ls_valores			=	io_tags.transacao.split(';');
-						
-						//
-						// Pega o objeto lista..
-						//
-						var
-						lo_lst_obj		=		document.getElementById('io_lst_transacao_tipo');
-						
-						//
-						// Limpa a lista antes de realimenta-la..
-						//
-						lo_lst_obj.innerHTML	=		'';
-						
-						//
-						// Adiciona os tipos de Transação..
-						//
-						for	(
-								ln_1			=		0
-								;
-								ln_1			<		ls_valores.length
-								;
-								ln_1++
-							)
-						{
-							var
-							lo_option		=		document.createElement('option');
-							
-							lo_option.text = ls_valores[ln_1].replace('"', '').replace('"', '');
-							lo_lst_obj.options.add(lo_option);
-						}
-						
-						//
-						// Adiciona os Produto..
-						//
-						var
-						ls_valores			=	io_tags.transacao_produto.split(';');
-						
-						var
-						lo_lst_obj		=		document.getElementById('io_lst_tipo_produto');
-						
-						for	(
-								ln_1			=		0
-								;
-								ln_1			<		ls_valores.length
-								;
-								ln_1++
-							)
-						{
-							var
-							lo_option		=		document.createElement('option');
-							//Trace('Valores: '+ls_valores[ln_1]);
-							lo_option.text = ls_valores[ln_1].replace('"', '').replace('"', '');
-							lo_lst_obj.options.add(lo_option);
-						}
-					}
-				}
-			}
-			catch	(err)
-			{
-				alert('Error interno: '+err.message);
-			}
-			
-			function			JanelaFechar()
-			{
-				Trace('Disconnect...');
-				io_connection.close();
-			}
-			
-			function			JanelaAbrir()
-			{
-				Trace('Iniciando Aplicação Comercial...');
-				
-				var
-				loc			=		location.search.substring(1, location.search.length);
-				
-				Trace(loc);
-			}
-		}
-	
-	</script>
-	<div id="output" onUnload="JanelaFechar()" onload="JanelaAbrir()" style="font-family:arial;font-size:12px;color:blue"></div>
+  <title>VBI Informática</title>
+  <h3><label>Serviços para execução da transação</label></h3>
+  <label>Sequencial</label>
+  <input type="text" id="io_txt_sequencial" size="10" />
+  <button style="width: 90px; height: 26px" onclick="SequencialAdicionar()">
+    Sequencial++
+  </button>
+  <br />
+  <label>Valor</label>
+  <input type="text" id="io_txt_coleta_valor" size="10" />
+  <br />
+  <label>Tipo do Cartão</label>
+  <select id="io_lst_tipo_cartao">
+    <option></option>
+    <option>Credito</option>
+    <option>Debito</option>
+  </select>
+  <br />
+  <label>Tipo da Transação</label>
+  <select id="io_lst_transacao_tipo">
+    <option></option>
+  </select>
+  <br />
+  <label>Produto</label>
+  <select id="io_lst_tipo_produto">
+    <option></option>
+  </select>
+  <br />
+  <label>Pagamento</label>
+  <select id="io_lst_transacao_pagamento">
+    <option></option>
+    <option>A vista</option>
+    <option>Parcelado Estabelecimento</option>
+    <option>Parcelado Administradora</option>
+  </select>
+  <br />
+  <br />
+  <button style="width: 90px; height: 26px" onclick="Conectar()">
+    Conectar
+  </button>
+  <button style="width: 90px; height: 26px" onclick="Consultar()">
+    Consultar
+  </button>
+  <button style="width: 90px; height: 26px" onclick="Iniciar()">Iniciar</button>
+  <button style="width: 90px; height: 26px" onclick="Executar()">
+    Executar
+  </button>
+  <button style="width: 90px; height: 26px" onclick="Confirmar()">
+    Confimar
+  </button>
+  <button style="width: 90px; height: 26px" onclick="Finalizar()">
+    Finalizar
+  </button>
+  <button style="width: 90px; height: 26px" onclick="FluxoAbortar()">
+    Abortar
+  </button>
+  <button style="width: 90px; height: 26px" onclick="Limpar()">Limpar</button>
+  <br />
+  <br />
+  <label>Informação</label>
+  <input
+    type="text"
+    id="io_txt_coleta_informacao"
+    onkeypress="Coleta(event)"
+    size="40"
+  />
+  <button style="width: 90px; height: 24px" onclick="Coleta('')">Enviar</button>
+  <button style="width: 120px; height: 26px" onclick="CartaoDigitar()">
+    Digitar Cartão
+  </button>
+  <br />
+  <h3><label>Serviços que utilizam o PIN-Pad</label></h3>
+  <select id="io_lst_tipo_servico_mostrar">
+    <option></option>
+    <option>CMCE</option>
+    <option>LIBA</option>
+    <option>OPCS</option>
+    <option>PDTA</option>
+    <option>PDTC</option>
+    <option>PDTL</option>
+    <option>PDTN</option>
+    <option>PDTR</option>
+    <option>PDTS</option>
+    <option>SELC</option>
+    <option>SIGE</option>
+    <option>TRAA</option>
+    <option>TRAC</option>
+    <option>WAIT</option>
+  </select>
+
+  <button style="width: 90px; height: 26px" onclick="Mostrar('')">
+    Mostrar
+  </button>
+  <br />
+  <select id="io_lst_tipo_servico_coletar">
+    <option></option>
+    <option>CNPJE</option>
+    <option>CPFE</option>
+    <option>FONEE</option>
+    <option>RGE</option>
+  </select>
+
+  <button style="width: 90px; height: 26px" onclick="Coletar()">Coletar</button>
+  <br />
+  <select id="io_lst_tipo_servico_perguntar">
+    <option></option>
+    <option>CNPJC</option>
+    <option>CPFC</option>
+    <option>FONEC</option>
+    <option>OPERC</option>
+    <option>RGC</option>
+    <option>SELC</option>
+  </select>
+
+  <button style="width: 90px; height: 26px" onclick="Perguntar()">
+    Perguntar
+  </button>
+
+  <script type="text/javascript" src="vspague.js"></script>
+  <script type="text/javascript" src="html.js"></script>
+  <div
+    id="output"
+    onUnload="JanelaFechar()"
+    onload="JanelaAbrir()"
+    style="font-family: arial; font-size: 12px; color: blue"
+  ></div>
 </html>
