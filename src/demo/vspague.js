@@ -1,41 +1,30 @@
 class VSPagueClient {
+  in_sequencial;
+  in_sequencial_executar;
+  io_connection;
+  io_tags;
+
   constructor() {
     this.in_sequencial = 2;
     this.in_sequencial_executar = 0;
     this.io_connection = null;
-    this.io_tags = null;
+    this.io_tags = new Tags();
   }
 
   send(message) {
-    this.io_connection.send(message);
-    return message;
+    return new Promise((resolve, reject) => {
+      try {
+        this.io_connection.send(message);
+        resolve(message);
+      } catch (error) {
+        reject(error);
+      }
+    });
   }
 
   next() {
     this.in_sequencial = this.in_sequencial + 1;
     return this.in_sequencial;
-  }
-
-  init() {
-    return this.send(
-      'servico="iniciar"sequencial="' +
-        this.next() +
-        '"retorno="1"versao="1.0.0"aplicacao_tela="VBIAutomationTest"aplicacao="V$PagueClient"'
-    );
-  }
-
-  end() {
-    return this.send(
-      'servico="finalizar"sequencial="' + this.next() + '"retorno="1"'
-    );
-  }
-
-  abort() {
-    return this.send(
-      'automacao_coleta_retorno="9"automacao_coleta_mensagem="Fluxo Abortado pelo operador!!"automacao_coleta_sequencial="' +
-        this.in_sequencial_executar +
-        '"'
-    );
   }
 
   confirm(transactionType) {
@@ -96,8 +85,6 @@ class VSPagueClient {
 
     this.io_connection.onopen = function () {
       this.io_tags = new Tags();
-      this.io_tags.init();
-
       onOpen();
     };
 
@@ -112,10 +99,13 @@ class VSPagueClient {
 
     this.io_connection.onmessage = function (e) {
       onMessage({ body: e.data });
-      this.io_tags.init();
 
-      // Mosta as tag's recebidas.
-      new ServicoDesmontar(this.io_tags, e.data);
+      const tags = extractTagValues(e.data);
+      Object.keys(tags).forEach((key) => {
+        this.io_tags.fill(key, tags[key]);
+      });
+
+      console.log(this.io_tags);
 
       // Se retorno não for de pacote ok...
       if (this.io_tags.retorno !== "0") {
@@ -215,76 +205,38 @@ class Tags {
   }
 }
 
-var ServicoDesmontar = function (io_tags, ao_servico) {
+const extractTagValues = (str) => {
   var ln_start = 0;
-  var ln_end = ao_servico
-    .toString()
-    .indexOf("\n\r\n\t\t\r\n\t\t\t\r\n\t\t\r\n\t");
-
+  var ln_end = str.toString().indexOf("\n\r\n\t\t\r\n\t\t\t\r\n\t\t\r\n\t");
   var ls_tag = "";
-
   var ls_value = "";
+  let obj = {};
 
   try {
-    // Enquanto não finalizou a leitura do pacote recebido...
     while (ln_start < ln_end) {
       // Recupera a TAG
-      ls_tag = ao_servico
-        .toString()
-        .substring(ln_start, ao_servico.indexOf('="', ln_start));
+      ls_tag = str.toString().substring(ln_start, str.indexOf('="', ln_start));
 
-      // Ignora o = e a primeira " (...="...).
+      // Ignora o = e a primeira " (...="...)
       ln_start = ln_start + ls_tag.toString().length + 2;
 
-      // Recupera o valor da tag.
-      ls_value = ao_servico
+      // Recupera o valor da tag
+      ls_value = str
         .toString()
         .substring(
           ln_start,
-          (ln_start = ao_servico.toString().indexOf('"\n', ln_start))
+          (ln_start = str.toString().indexOf('"\n', ln_start))
         );
 
-      //Aponta para a segunda aspa dupla + \n.
+      // Aponta para a segunda aspa dupla + \n
       ln_start += 2;
 
-      // Alimenta com a tag recebida..
-      io_tags.fill(ls_tag, ls_value);
+      // Alimenta com a tag recebida
+      obj[ls_tag] = ls_value;
     }
 
-    if (io_tags.servico !== "") {
-      // Se Recebeu um Serviço Executar..
-      if ("consultar" === io_tags.servico) {
-        // Quebra no ; a lista que a automação recebeu..
-        var ls_valores = io_tags.transacao.split(";");
-
-        // Pega o objeto lista..
-        var lo_lst_obj = document.getElementById("io_lst_transacao_tipo");
-
-        // Limpa a lista antes de realimenta-la..
-        lo_lst_obj.innerHTML = "";
-
-        // Adiciona os tipos de Transação..
-        for (ln_1 = 0; ln_1 < ls_valores.length; ln_1++) {
-          var lo_option = document.createElement("option");
-
-          lo_option.text = ls_valores[ln_1].replace('"', "").replace('"', "");
-          lo_lst_obj.options.add(lo_option);
-        }
-
-        // Adiciona os Produto..
-        var ls_valores = io_tags.transacao_produto.split(";");
-
-        var lo_lst_obj = document.getElementById("io_lst_tipo_produto");
-
-        for (ln_1 = 0; ln_1 < ls_valores.length; ln_1++) {
-          var lo_option = document.createElement("option");
-          //Trace('Valores: '+ls_valores[ln_1]);
-          lo_option.text = ls_valores[ln_1].replace('"', "").replace('"', "");
-          lo_lst_obj.options.add(lo_option);
-        }
-      }
-    }
-  } catch (err) {
-    alert("Error interno: " + err.message);
+    return obj;
+  } catch (error) {
+    console.error(error);
   }
 };
