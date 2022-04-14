@@ -105,8 +105,6 @@ class VSPagueClient {
         this.io_tags.fill(key, tags[key]);
       });
 
-      console.log(this.io_tags);
-
       // Se retorno não for de pacote ok...
       if (this.io_tags.retorno !== "0") {
         this.in_sequencial = this.io_tags.sequencial;
