@@ -11,6 +11,7 @@ function Conectar() {
     },
     onMessage: (message) => {
       Trace(message.body);
+      console.log(client);
     },
     onSequencial: (value) => {
       document.getElementById("io_txt_sequencial").value = value;
@@ -40,9 +41,10 @@ function Trace(message) {
 async function Send(message) {
   return client
     .send(message)
-    .then((res) => {
+    .then(() => {
       var obj = document.getElementById("output");
-      obj.innerHTML = "<br> >>> SEND: <br>" + res + "<br><br>" + obj.innerHTML;
+      obj.innerHTML =
+        "<br> >>> SEND: <br>" + message + "<br><br>" + obj.innerHTML;
     })
     .catch((err) => {
       Trace(`Erro ao enviar mensagem: ${err}`);
@@ -50,7 +52,7 @@ async function Send(message) {
 }
 
 async function FluxoAbortar() {
-  await Send(
+  Send(
     'automacao_coleta_retorno="9"automacao_coleta_mensagem="Fluxo Abortado pelo operador!!"automacao_coleta_sequencial="' +
       client.in_sequencial_executar +
       '"'
@@ -66,7 +68,7 @@ async function CartaoDigitar() {
 }
 
 async function Mostrar(ao_event) {
-  var ls_tipo_servico = document.getElementById("io_lst_tipo_servico_mostrar")
+  let ls_tipo_servico = document.getElementById("io_lst_tipo_servico_mostrar")
     .options[io_lst_tipo_servico_mostrar.selectedIndex].text;
 
   if (ls_tipo_servico === "") {
@@ -74,7 +76,7 @@ async function Mostrar(ao_event) {
   }
 
   if (ao_event === "" || ao_event.keyCode === 13) {
-    await Send(
+    Send(
       'servico="mostrar"retorno="1"sequencial="' +
         Sequencial() +
         '"mensagem="' +
@@ -113,44 +115,49 @@ async function Perguntar() {
 }
 
 async function Consultar() {
-  await Send(
-    'servico="consultar"retorno="0"sequencial="' + client.next() + '"'
-  );
+  const sequencial = Sequencial();
+  console.log(sequencial);
 
-  try {
-    if (client.io_tags.servico && client.io_tags.servico === "consultar") {
-      // Quebra no ; a lista que a automação recebeu
-      var ls_valores = client.io_tags.transacao.split(";");
+  await Send('servico="consultar"retorno="0"sequencial="' + sequencial + '"')
+    .then(() => {
+      console.log(client);
+      if (client.io_tags.servico && client.io_tags.servico === "consultar") {
+        // Quebra no ; a lista que a automação recebeu
+        var ls_valores = client.io_tags.transacao.split(";");
 
-      // Pega o objeto lista
-      var lo_lst_obj = document.getElementById("io_lst_transacao_tipo");
+        // Pega o objeto lista
+        var lo_lst_obj = document.getElementById("io_lst_transacao_tipo");
 
-      // Limpa a lista antes de realimenta-la
-      lo_lst_obj.innerHTML = "";
+        // Limpa a lista antes de realimenta-la
+        lo_lst_obj.innerHTML = "";
 
-      // Adiciona os tipos de Transação
-      for (ln_1 = 0; ln_1 < ls_valores.length; ln_1++) {
-        var lo_option = document.createElement("option");
+        // Adiciona os tipos de Transação
+        for (ln_1 = 0; ln_1 < ls_valores.length; ln_1++) {
+          var lo_option = document.createElement("option");
 
-        lo_option.text = ls_valores[ln_1].replace('"', "").replace('"', "");
-        lo_lst_obj.options.add(lo_option);
+          lo_option.text = ls_valores[ln_1].replace('"', "").replace('"', "");
+          lo_lst_obj.options.add(lo_option);
+        }
+
+        // Adiciona os Produto
+        var ls_valores_produtos = client.io_tags.transacao_produto.split(";");
+
+        var lo_lst_obj_produto = document.getElementById("io_lst_tipo_produto");
+
+        for (ln_1 = 0; ln_1 < ls_valores_produtos.length; ln_1++) {
+          var lo_option_produto = document.createElement("option");
+          //Trace('Valores: '+ls_valores[ln_1]);
+          lo_option_produto.text = ls_valores[ln_1]
+            .replace('"', "")
+            .replace('"', "");
+          lo_lst_obj_produto.options.add(lo_option);
+        }
       }
-
-      // Adiciona os Produto
-      var ls_valores_produtos = client.io_tags.transacao_produto.split(";");
-
-      var lo_lst_obj = document.getElementById("io_lst_tipo_produto");
-
-      for (ln_1 = 0; ln_1 < ls_valores_produtos.length; ln_1++) {
-        var lo_option = document.createElement("option");
-        //Trace('Valores: '+ls_valores[ln_1]);
-        lo_option.text = ls_valores[ln_1].replace('"', "").replace('"', "");
-        lo_lst_obj.options.add(lo_option);
-      }
-    }
-  } catch (err) {
-    alert("Error interno: " + err.message);
-  }
+    })
+    .catch((err) => {
+      alert("Error interno: " + err.message);
+      Trace("Erro interno: " + err.message);
+    });
 }
 
 async function Coleta(ao_event) {
