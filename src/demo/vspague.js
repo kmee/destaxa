@@ -5,29 +5,22 @@ class VSPagueClient {
   io_tags;
 
   constructor() {
-    this.in_sequencial = 2;
+    this.in_sequencial = 0;
     this.in_sequencial_executar = 0;
     this.io_connection = null;
     this.io_tags = new Tags();
   }
 
-  send(message) {
-    return new Promise((resolve, reject) => {
-      try {
-        this.io_connection.send(message);
-        resolve(message);
-      } catch (error) {
-        reject(error);
-      }
-    });
-  }
+  send = async (message) => {
+    return this.io_connection.send(message);
+  };
 
-  next() {
+  next = () => {
     this.in_sequencial = this.in_sequencial + 1;
     return this.in_sequencial;
-  }
+  };
 
-  confirm(transactionType) {
+  confirm = (transactionType) => {
     let ls_tipo_transacao = 'transacao="' + transactionType + '"';
 
     let ls_tags_executar =
@@ -37,9 +30,9 @@ class VSPagueClient {
       ls_tipo_transacao;
 
     return this.send(ls_tags_executar);
-  }
+  };
 
-  exec(opts) {
+  exec = async (opts) => {
     let {
       ls_tipo_transacao,
       ls_tipo_cartao,
@@ -78,26 +71,27 @@ class VSPagueClient {
     }
 
     return this.send(ls_tags_executar);
-  }
+  };
 
-  connect({ onOpen, onMessage, onError, onClose, onSequencial }) {
+  connect = ({ onOpen, onMessage, onError, onClose, onSequencial }) => {
     this.io_connection = new WebSocket("ws://localhost:60906");
 
-    this.io_connection.onopen = function () {
+    this.io_connection.onopen = () => {
       this.io_tags = new Tags();
+      this.io_tags.init();
       onOpen();
     };
 
-    this.io_connection.onclose = function () {
+    this.io_connection.onclose = () => {
       onClose();
     };
 
-    this.io_connection.onerror = function (error) {
+    this.io_connection.onerror = (error) => {
       console.error(error.message);
       onError(error);
     };
 
-    this.io_connection.onmessage = function (e) {
+    this.io_connection.onmessage = (e) => {
       onMessage({ body: e.data });
 
       const tags = extractTagValues(e.data);
@@ -112,7 +106,7 @@ class VSPagueClient {
       }
 
       // Guarda o sequencial corrente da coleta.
-      this.in_sequencial = this.io_tags.sequencial;
+      this.in_sequencial_executar = this.io_tags.automacao_coleta_sequencial;
 
       // Apresenta o comprovante..
       if (this.io_tags.transacao_comprovante_1via !== "") {
@@ -122,7 +116,7 @@ class VSPagueClient {
         alert(comprovante);
       }
     };
-  }
+  };
 }
 
 // Tags nessessárias para a integração.
